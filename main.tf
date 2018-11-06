@@ -4,6 +4,7 @@ provider "aws" {
 
 }
 
+
 # Next is the AWS instance declaration
 resource "aws_instance" "k8s_instance" {
   ami = "ami-0091e5332008c5c0a"
@@ -52,7 +53,10 @@ resource "aws_security_group" "k8s_sec_group" {
   }
 }
 
-# Create a launch configuration
+#########################################
+####   Create a launch configuration
+#########################################
+
 resource "aws_launch_configuration" "k8s_launch_config" {
   image_id = "ami-0091e5332008c5c0a"
   instance_type = "t2.micro"
@@ -67,7 +71,10 @@ resource "aws_launch_configuration" "k8s_launch_config" {
   }
 }
 
+####################################################
 # Finally create the auto scaling group based off the launch configuration
+####################################################
+
 resource "aws_autoscaling_group" "k8s_auto_scaling" {
   launch_configuration = "${aws_launch_configuration.k8s_launch_config.id}"
   min_size = 2
@@ -75,7 +82,7 @@ resource "aws_autoscaling_group" "k8s_auto_scaling" {
   availability_zones =  ["us-west-2a", "us-west-2b", "us-west-2c"] 
   tag {
     key = "Name"
-    value = "k8s-instances"
+    value = "k8s-node-instances-us-west-2"
     propagate_at_launch = true
   }
   lifecycle {
