@@ -1,0 +1,17 @@
+# This is how you run terraform
+
+1. Have a main.tf. Only one main.tf can exist.  for different environments, use different folders with one per
+
+2. Run terraform with plan first.  the ./terraform here is the executable downloaded for the particular OS.
+
+ ./terraform plan -var "server_port=8080"
+
+If there are variables in the main.tf, then they can be called like this.
+
+3. Finally "apply"
+
+./terraform apply -var "server_port=8080"
+
+
+
+
