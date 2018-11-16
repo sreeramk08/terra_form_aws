@@ -1,23 +1,42 @@
-# This tells which provider to use
-provider "aws" {
-  region = "us-west-2"
+/* 
 
+  Declare the variables that can be used in this terraform configuration
+
+*/
+
+variable "region" {
+  type = "string"
+  default = "us-west-2"
 }
 
+/*
+  
+  Provider specification
 
-# Next is the AWS instance declaration
-resource "aws_instance" "k8s_instance" {
+*/
+
+provider "aws" {
+  region = "${var.region}"
+}
+
+/*
+
+  Declaration for creating the master (in the absence of a auto scaling)
+
+
+resource "aws_instance" "k8s_master_instance" {
   ami = "ami-0091e5332008c5c0a"
   instance_type = "t2.micro"
-  # If the instance has to be added to existing sec groups
-  security_groups = ["k8s-us-west-2-sg"]
-  user_data = <<-EOF
-              #!/bin/bash
-              echo "Hello world!" > index.html
-              nohup busybox httpd -f -p "${var.server_port}" &
-              EOF
+  # Security group is created below
+  security_groups = ["k8s-sg"]
+  #user_data = <<-EOF
+  #            #!/bin/bash
+  #            echo "Hello world!" > index.html
+  #            nohup busybox httpd -f -p "${var.server_port}" &
+  #            EOF
+
   tags {
-    Name = "kubernetes-master-us-west-2"
+    Name = "kubernetes-master-${var.region}"
   }
 
   lifecycle {
@@ -25,13 +44,42 @@ resource "aws_instance" "k8s_instance" {
   }
 }
 
-####################################################
-#####     Security group declaration
-###################################################
+*/
 
-# In case we need to create our own security group
+/*
+
+  Declaration for creating the nodes (in the absence of auto scaling)
+
+
+resource "aws_instance" "k8s_nodes_instance" {
+  ami = "ami-0091e5332008c5c0a"
+  instance_type = "t2.micro"
+  # Security group is created below
+  security_groups = ["k8s-sg"]
+  #user_data = <<-EOF
+  #            #!/bin/bash
+  #            echo "Hello world!" > index.html
+  #            nohup busybox httpd -f -p "${var.server_port}" &
+  #            EOF
+  tags {
+    Name = "kubernetes-nodes"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+*/
+
+/*
+
+ Security group declaration
+
+*/
+
 resource "aws_security_group" "k8s_sec_group" {
-  name = "k8s-us-west-2-sg"
+  name = "k8s-sg"
   vpc_id = "vpc-41fa3c24"
   ingress {
     from_port = 8080
@@ -46,46 +94,103 @@ resource "aws_security_group" "k8s_sec_group" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+    from_port = "0"
+    to_port = "0"
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   
   # Ignore if it already exists
   lifecycle {
-    ignore_changes = ["k8s-us-west-2-sg"]
+    ignore_changes = ["k8s-sg"]
   }
 }
 
-#########################################
-####   Create a launch configuration
-#########################################
+/*
 
-resource "aws_launch_configuration" "k8s_launch_config" {
+  Create a launch configuration for master
+
+*/
+
+resource "aws_launch_configuration" "k8s_master_launch_config" {
+  name = "K8s Master launch config"
   image_id = "ami-0091e5332008c5c0a"
   instance_type = "t2.micro"
-  security_groups = ["k8s-us-west-2-sg"]
-  user_data = <<-EOF
-              #!/bin/bash
-              echo "Hello, World" > index.html
-              nohup busybox httpd -f -p "${var.server_port}" &
-              EOF
+  security_groups = ["k8s-${var.region}-sg"]
+  #user_data = <<-EOF
+  #            #!/bin/bash
+  #            echo "Hello, World" > index.html
+  #            nohup busybox httpd -f -p "${var.server_port}" &
+  #            EOF
+
   lifecycle {
     create_before_destroy = true
   }
 }
 
-####################################################
-# Finally create the auto scaling group based off the launch configuration
-####################################################
+/*
 
-resource "aws_autoscaling_group" "k8s_auto_scaling" {
-  launch_configuration = "${aws_launch_configuration.k8s_launch_config.id}"
-  min_size = 2
-  max_size = 5
+  Launch configuration for Nodes
+
+*/
+
+resource "aws_launch_configuration" "k8s_nodes_launch_config"{
+  name = "K8s Node Launch config"
+  image_id = "ami-05778fb400b30826f"
+  instance_type = "t2.micro"
+  security_groups = ["k8s-${var.region}-sg"]
+  
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+/*
+
+  Auto scaling groups based off the launch configurations
+
+*/
+
+/*
+
+  Autoscaling for master
+
+*/
+
+resource "aws_autoscaling_group" "k8s_master_auto_scaling" {
+  launch_configuration = "${aws_launch_configuration.k8s_master_launch_config.id}"
+  min_size = 1
+  max_size = 1
   availability_zones =  ["us-west-2a", "us-west-2b", "us-west-2c"] 
   tag {
     key = "Name"
-    value = "k8s-node-instances-us-west-2"
+    value = "k8s-master-instance-${var.region}"
     propagate_at_launch = true
   }
   lifecycle {
     create_before_destroy = true
   }
 }
+
+/*
+
+  Auto scaling for nodes
+
+*/
+resource "aws_autoscaling_group" "k8s_nodes_auto_scaling" {
+  launch_configuration = "${aws_launch_configuration.k8s_nodes_launch_config.id}"
+  min_size = 2
+  max_size = 5
+  availability_zones =  ["us-west-2a", "us-west-2b", "us-west-2c"]
+  tag {
+    key = "Name"
+    value = "k8s-node-instances-${var.region}"
+    propagate_at_launch = true
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
