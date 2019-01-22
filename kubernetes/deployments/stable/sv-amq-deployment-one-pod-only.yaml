@@ -1,3 +1,14 @@
+# Status:
+# This description file will create a single pod which can be accessed from
+# each nodes ip address at the port exposed by the NodePort service
+#
+# Only the Persistent volume claim needs to be specified.  A PV is automatically
+# created in aws
+#
+# Limitation:  Only one pod can be launched. If replicas number is increased
+# one pod is running while the other is waiting.  
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,7 +16,7 @@ metadata:
   labels:
     app: activemq
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: activemq
