@@ -1,0 +1,44 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: activemq-deployment
+spec:
+  selector:
+    matchLabels:
+      app: activemq
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+      - env:
+        image: "activemq:1.0"
+        imagePullPolicy: IfNotPresent
+        name: activemq
+        ports:
+        - containerPort: 8161
+          name: amq-ui
+        volumeMounts:
+        - mountPath: /datasam        # A folder with this name is created on the pod
+          name: activemq-data
+      restartPolicy: Always
+      volumes:
+      - name: activemq-data
+        persistentVolumeClaim:
+          claimName: amq-claim
+ 
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: activemq
+  ports:
+  - name: amq-ui
+    port: 8161
+    targetPort: 8161
+  type: NodePort

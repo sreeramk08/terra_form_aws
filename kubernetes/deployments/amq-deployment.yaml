@@ -1,0 +1,43 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: activemq-deployment
+spec:
+  selector:
+    matchLabels:
+      app: activemq
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+      - env:
+        image: "activemq:1.0"
+        imagePullPolicy: IfNotPresent
+        name: activemq
+        ports:
+        - containerPort: 8161
+          name: amq-ui
+        volumeMounts:
+        - mountPath: /data
+          name: activemq-data
+      restartPolicy: Always
+      volumes:
+      - name: activemq-data
+        persistentVolumeClaim:
+          claimName: amq-claim
+ 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: activemq
+spec:
+  ports:
+  - name: amq-ui
+    port: 8161
+    targetPort: 8161
+  selector:
+    app: activemq

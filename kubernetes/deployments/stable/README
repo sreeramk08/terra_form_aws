@@ -1,0 +1,2 @@
+sv-shekar.yaml
+  Creates all resources..but after the pod is deleted and a new one spins up, the activemq queues are gone.  

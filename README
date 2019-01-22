@@ -10,8 +10,18 @@ If there are variables in the main.tf, then they can be called like this.
 
 3. Finally "apply"
 
-./terraform apply -var "server_port=8080"
+./terraform apply -var "server_port=8080" 
+
+
+#########################################
+Lot of files are used here. Keeping track
+#########################################
+
+main.tf  ---> The main config file
+cloudinit.tf  ----> declaring the shell scripts under scripts/
+
+provider.tf  ---> tells terraform that we are doing all this under aws
 
 
 
-
+variables.tf ---> Declaring the variables used

@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: activemq
+  labels:
+    app: activemq
+spec:
+  ports:
+  selector:
+    app: activemq
+  ports:
+  - port: 8161
+    targetPort: 8161
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: activemq
+  labels:
+    app: activemq
+spec:
+  serviceName: "activemq"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: activemq
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      securityContext:
+        fsGroup: 26
+      containers:
+      - name: activemq
+        image: activemq:1.0
+        ports:
+        - containerPort: 8161
+          name: mq
+        volumeMounts:
+        - name: activemq-data
+          mountPath: /opt/apache-activemq-5.15.6/data
+      volumes:
+      - name: activemq-data
+        persistentVolumeClaim:
+          claimName: amq-pv-claim
+      - name: config-vol
+        configMap:
+          name: amq-config-map
+
+  #volumeClaimTemplates:
+  #- metadata:
+  #    name: amq-data
+  #  spec:
+  #    accessModes: [ "ReadWriteOnce" ]
+  #    resources:
+  #      requests:
+  #        storage: 1Gi
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: amq-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

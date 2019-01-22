@@ -1,0 +1,88 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: activemq-deployment
+spec:
+  selector:
+    matchLabels:
+      app: activemq
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+      - env:
+        image: "activemq:1.0"
+        imagePullPolicy: IfNotPresent
+        name: activemq
+        ports:
+        - containerPort: 8161
+          name: amq-ui
+        volumeMounts:
+        # The folder is created on the pod
+        - mountPath: /opt/apache-activemq-5.15.6/data        
+          name: activemq-data
+          readOnly: false
+      restartPolicy: Always
+      volumes:
+      - name: activemq-data
+        persistentVolumeClaim:
+          claimName: task-pv-claim
+ 
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-amq-service
+spec:
+  selector:
+    app: activemq
+  ports:
+  - name: amq-ui
+    port: 8161
+    targetPort: 8161
+  type: NodePort
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: task-pv-volume
+  labels:
+    type: local
+  annotations:
+    pv.beta.kubernetes.io/gid: "101"
+spec:
+  storageClassName: local-storage
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  
+  local:
+    path: "/mnt/data"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ip-172-20-35-134.us-west-2.compute.internal
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: task-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
+

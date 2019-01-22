@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activemq-deployment
+  labels:
+    app: activemq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activemq
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+      - name: activemq
+        image: activemq:1.0
+        ports:
+        - containerPort: 8161
+        volumeMounts:
+        - name: activemq-data
+          mountPath: /opt/apache-activemq-5.15.6/data
+          readOnly: false
+      volumes:
+      - name: activemq-data
+        persistentVolumeClaim:
+          claimName: amq-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: activemq
+  ports:
+  - port: 8161
+    targetPort: 8161
+  type: NodePort
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: amq-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+#---
+#apiVersion: v1
+#kind: PersistentVolume
+#metadata:
+#  name: amq-pv-claim
+#spec:
+#  capacity:
+#    storage: 3Gi
+#  accessModes:
+#    - ReadWriteOnce
+#  storageClassName: local-storage
+#  local:  
+#    path: /tmp
+#  nodeAffinity:
+#    required:
+#      nodeSelectorTerms:
+#      - matchExpressions:
+#        - key: kubernetes.io/ip-172-20-35-134.us-west-2.compute.internal
+#          operator: In
+#          values:
+#          - 34.219.164.47
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: amq-pv-claim
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /tmp
