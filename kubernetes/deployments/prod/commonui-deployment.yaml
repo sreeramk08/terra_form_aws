@@ -1,0 +1,35 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: commonui-deployment
+spec:
+  selector:
+    matchLabels:
+      app: commonui
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: commonui
+    spec:
+      containers:
+      - name: commonui
+        image: 255406852360.dkr.ecr.us-west-2.amazonaws.com/commonui:1.1
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commonui-nodeport-service
+spec:
+  selector:
+    app: commonui
+  ports:
+  - nodePort: 32666
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  type: NodePort
+

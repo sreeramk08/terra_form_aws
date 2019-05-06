@@ -6,7 +6,10 @@
 # created in aws
 #
 # Limitation:  Only one pod can be launched. If replicas number is increased
-# one pod is running while the other is waiting.  
+# one pod is running while the other is waiting. 
+#
+# No need to worry about the config map listed.  no config map exists and this works
+#
 
 
 apiVersion: apps/v1
@@ -40,9 +43,9 @@ spec:
       - name: activemq-data
         persistentVolumeClaim:
           claimName: amq-pv-claim
-      - name: config-vol
-        configMap:
-          name: amq-config-map
+#      - name: config-vol
+#        configMap:
+#          name: amq-config-map
 ---
 apiVersion: v1
 kind: Service
